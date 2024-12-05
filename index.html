@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Compras Mensais</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .atrasado {
+            color: red;
+            font-weight: bold;
+        }
+        .vencer {
+            color: orange;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Controle de Compras Mensais</h1>
+
+    <form id="compraForm">
+        <label for="titulo">Título do Produto:</label>
+        <input type="text" id="titulo" name="titulo" required>
+
+        <label for="valor">Valor:</label>
+        <input type="text" id="valor" name="valor" required>
+
+        <label for="tipoPagamento">Tipo de Pagamento:</label>
+        <select id="tipoPagamento" name="tipoPagamento" onchange="alterarTipoPagamento()">
+            <option value="mensal">Mensal</option>
+            <option value="anual">Anual</option>
+        </select>
+
+        <div id="mensalOpcao">
+            <label for="diaPagamento">Dia do Pagamento (Mensal):</label>
+            <input type="number" id="diaPagamento" name="diaPagamento" min="1" max="31" required>
+        </div>
+
+        <div id="anualOpcao" style="display: none;">
+            <label for="diaAnual">Dia do Pagamento (Anual):</label>
+            <input type="number" id="diaAnual" name="diaAnual" min="1" max="31">
+
+            <label for="mesAnual">Mês do Pagamento (Anual):</label>
+            <select id="mesAnual" name="mesAnual">
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+
+            <label for="quantidadeAnos">Quantos anos?</label>
+            <input type="number" id="quantidadeAnos" name="quantidadeAnos" min="1" max="10">
+        </div>
+
+        <button type="button" onclick="adicionarCompra()">Enviar</button>
+        <input type="file" id="fileInput" accept=".csv" style="margin-top: 20px;" />
+        <button type="button" onclick="importarCSV()">Importar CSV</button>
+    </form>
+
+    <h2>Compras Mensais</h2>
+    <table id="comprasTable">
+        <thead>
+            <tr>
+                <th>Título do Produto</th>
+                <th>Valor</th>
+                <th>Data para Pagamento</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Linhas serão adicionadas aqui -->
+        </tbody>
+    </table>
+
+    <button onclick="exportarCSV()">Exportar para Planilha (CSV)</button>
+    <button onclick="exportarPDF()">Exportar para PDF</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        const compras = [];
+        const today = new Date();
+        const diaAtual = today.getDate();
+
+        function alterarTipoPagamento() {
+            const tipoPagamento = document.getElementById('tipoPagamento').value;
+            document.getElementById('mensalOpcao').style.display = tipoPagamento === 'mensal' ? 'block' : 'none';
+            document.getElementById('anualOpcao').style.display = tipoPagamento === 'anual' ? 'block' : 'none';
+        }
+
+        function adicionarCompra() {
+            const titulo = document.getElementById('titulo').value;
+            const valor = document.getElementById('valor').value;
+            const tipoPagamento = document.getElementById('tipoPagamento').value;
+            let dataPagamento = '';
+
+            if (tipoPagamento === 'mensal') {
+                const diaPagamento = document.getElementById('diaPagamento').value;
+                dataPagamento = `dia ${diaPagamento}`; // Apenas exibe o dia para pagamentos mensais
+            } else {
+                const diaAnual = document.getElementById('diaAnual').value;
+                const mesAnual = document.getElementById('mesAnual').value;
+                const quantidadeAnos = document.getElementById('quantidadeAnos').value;
+                dataPagamento = `dia ${diaAnual} do mês ${mesAnual} do ano ${parseInt(today.getFullYear()) + parseInt(quantidadeAnos)}`; // Exibe o dia, mês e ano para pagamentos anuais
+            }
+
+            // Adiciona a nova compra à lista
+            compras.push({ titulo, valor, dataPagamento, tipo: tipoPagamento });
+
+            // Limpa o formulário após a adição
+            document.getElementById('compraForm').reset();
+            alterarTipoPagamento(); // Reajusta as opções visíveis após o reset
+
+            // Atualiza a tabela
+            atualizarTabela();
+        }
+
+        function atualizarTabela() {
+            const tbody = document.getElementById('comprasTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';  // Limpa a tabela
+
+            compras.forEach((compra, index) => {
+                const row = tbody.insertRow();
+
+                const cellTitulo = row.insertCell(0);
+                const cellValor = row.insertCell(1);
+                const cellData = row.insertCell(2);
+                const cellExcluir = row.insertCell(3);
+
+                cellTitulo.innerHTML = compra.titulo;
+                cellValor.innerHTML = compra.valor;
+                cellData.innerHTML = compra.dataPagamento;
+                cellExcluir.innerHTML = `<button onclick="excluirCompra(${index})">Excluir</button>`;
+
+                // Verifica se o pagamento está atrasado ou prestes a vencer
+                const diaPagamento = parseInt(compra.dataPagamento.split(' ')[1]);
+                const dataPagamento = new Date(today.getFullYear(), today.getMonth(), diaPagamento);
+
+                // Condição para "Vai Vencer Hoje"
+                if (dataPagamento.getDate() === diaAtual) {
+                    cellData.innerHTML += ' (Vai Vencer Hoje)';
+                } else if (dataPagamento < today) {
+                    cellData.innerHTML += ' <span class="atrasado">(Atrasado)</span>';
+                }
+            });
+        }
+
+        function excluirCompra(index) {
+            compras.splice(index, 1);  // Remove a compra do array
+            atualizarTabela();  // Atualiza a tabela
+        }
+
+        function exportarCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Título do Produto,Valor,Data para Pagamento\n";
+            compras.forEach(compra => {
+                csvContent += `${compra.titulo},${compra.valor},${compra.dataPagamento}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "compras_mensais.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.text("Compras Mensais", 10, 10);
+
+            let linha = 20;
+            compras.forEach((compra, index) => {
+                doc.text(`Produto ${index + 1}: ${compra.titulo}, Valor: ${compra.valor}, Data: ${compra.dataPagamento}`, 10, linha);
+                linha += 10;
+            });
+
+            doc.save("compras_mensais.pdf");
+        }
+
+        function importarCSV() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Por favor, selecione um arquivo CSV.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                const rows = contents.split('\n');
+                rows.forEach((row, index) => {
+                    if (index > 0 && row.trim()) {  // Ignora o cabeçalho e linhas vazias
+                        const [titulo, valor, dataPagamento] = row.split(',');
+                        compras.push({ titulo, valor, dataPagamento });
+                    }
+                });
+                atualizarTabela();  // Atualiza a tabela após a importação
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
